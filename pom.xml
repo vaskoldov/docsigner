@@ -10,9 +10,9 @@
 	</parent>
 	<groupId>ru.hemulen</groupId>
 	<artifactId>docsigner</artifactId>
-	<version>1.0.8</version>
+	<version>1.2.0</version>
 	<name>docsigner</name>
-	<description>REST service for SMEV adapter</description>
+	<description>REST service for file signing</description>
 	<properties>
 		<java.version>1.8</java.version>
 	</properties>

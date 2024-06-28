@@ -21,9 +21,7 @@ public class DigitalSignatureFactory {
     private static volatile DigitalSignatureProcessor signatureProcessor = null;
     private static volatile KeyStoreWrapper keyStoreWrapper = null;
 
-    public static synchronized void init() throws SigLibInitializationException {
-        String keyStoreName = "HDImageStore";
-
+    public static synchronized void init(String keyStoreName) throws SigLibInitializationException {
         // Выполняем инициализацию фабрики
         System.setProperty("org.apache.xml.security.ignoreLineBreaks", "true");
         System.setProperty("org.apache.xml.security.resource.config", "resource/jcp.xml");

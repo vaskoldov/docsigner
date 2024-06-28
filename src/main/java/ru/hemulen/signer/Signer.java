@@ -21,7 +21,13 @@ public class Signer {
     private X509Certificate certificate;
 
     public Signer(String keyAlias, String password) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
-        DigitalSignatureFactory.init();
+        String keyStoreName;
+        if (keyAlias.contains("\\")) {
+            keyStoreName = keyAlias.substring(0, keyAlias.indexOf("\\"));
+        } else {
+            keyStoreName = "HDImageStore";
+        }
+        DigitalSignatureFactory.init(keyStoreName);
         digitalSignatureProcessor = DigitalSignatureFactory.getDigitalSignatureProcessor();
         KeyStoreWrapper keyStoreWrapper = DigitalSignatureFactory.getKeyStoreWrapper();
         privateKey = keyStoreWrapper.getPrivateKey(keyAlias, password.toCharArray());
