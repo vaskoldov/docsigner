@@ -62,9 +62,9 @@ public class DBConnection implements AutoCloseable {
         }
     }
 
-    public ResultSet getAttachments(String id) {
+    public ResultSet getAttachments(String clientId) {
         try {
-            String sql = String.format("select id, file_name from \"core\".attachment_metadata where message_metadata_id = '%s'", id);
+            String sql = String.format("select id, message_metadata_id, file_name, transfer_method from \"core\".attachment_metadata where message_metadata_id = '%s'", clientId);
             Statement statement = connection.createStatement();
             return statement.executeQuery(sql);
         } catch (SQLException e) {
