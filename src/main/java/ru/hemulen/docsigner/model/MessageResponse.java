@@ -23,7 +23,7 @@ public class MessageResponse {
     private String description;
     private String timestamp;
     private Boolean signRejected;
-    private ArrayList<String> attachments;
+    private ArrayList<String> attachments = new ArrayList<>();
     private Document xmlDocument;
     private DocumentBuilderFactory factory;
 

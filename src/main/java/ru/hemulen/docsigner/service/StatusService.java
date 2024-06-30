@@ -58,11 +58,16 @@ public class StatusService {
                         ResultSet attachments = connection.getAttachments(messageResponse.getClientId());
                         String attachmentPath;
                         while (attachments.next()) {
-                            //attachmentPath = attachmentsInPath + messageResponse.getClientId() + "/" + attachments.getString("file_name"); - это не работает в версии 2.3.1
-                            attachmentPath = attachmentsInPath + "/" +
-                                    attachments.getString("id") + "/" +
-                                    messageResponse.getClientId() + "/" +
-                                    attachments.getString("file_name");
+                            if (attachments.getString("transfer_method").equals("REFERENCE")) {
+                                attachmentPath = attachmentsInPath + "/" +
+                                        attachments.getString("id") + "/" +
+                                        attachments.getString("message_metadata_id") + "/" +
+                                        attachments.getString("file_name");
+                            } else {
+                                attachmentPath = attachmentsInPath + "/" +
+                                        attachments.getString("message_metadata_id") + "/" +
+                                        attachments.getString("file_name");
+                            }
                             messageResponse.setAttachment(attachmentPath);
                         }
                 }
