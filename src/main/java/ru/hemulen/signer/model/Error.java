@@ -1,4 +1,4 @@
-package ru.hemulen.docsigner.model;
+package ru.hemulen.signer.model;
 
 public class Error {
     private String code;

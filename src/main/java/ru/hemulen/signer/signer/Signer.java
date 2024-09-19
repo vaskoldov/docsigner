@@ -1,5 +1,6 @@
-package ru.hemulen.signer;
+package ru.hemulen.signer.signer;
 
+import org.springframework.stereotype.Component;
 import org.w3c.dom.Element;
 import ru.hemulen.crypto.DigitalSignatureFactory;
 import ru.hemulen.crypto.DigitalSignatureProcessor;
@@ -14,12 +15,25 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Properties;
 
+@Component
 public class Signer {
     private DigitalSignatureProcessor digitalSignatureProcessor;
     private PrivateKey privateKey;
     private X509Certificate certificate;
 
+    public Signer() throws UnrecoverableKeyException, CertificateException, KeyStoreException, NoSuchAlgorithmException {
+        Properties props = new Properties();
+        try {
+            props.load(new FileReader("./config/config.ini"));
+        } catch (IOException e) {
+            System.err.println("Не удалось прочитать файл настроек");
+            e.printStackTrace(System.err);
+            System.exit(1);
+        }
+        new Signer(props.getProperty("CONTAINER_ALIAS"), props.getProperty("CONTAINER_PASSWORD"));
+    }
     public Signer(String keyAlias, String password) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         String keyStoreName;
         if (keyAlias.contains("\\")) {

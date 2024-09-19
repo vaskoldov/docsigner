@@ -1,4 +1,4 @@
-package ru.hemulen.docsigner.exception;
+package ru.hemulen.signer.exception;
 
 public class FileOperationsException extends Exception{
     public FileOperationsException(String message) {
