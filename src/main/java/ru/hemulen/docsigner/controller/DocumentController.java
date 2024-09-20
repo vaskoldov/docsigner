@@ -7,9 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.hemulen.docsigner.exception.*;
-import ru.hemulen.docsigner.model.Content;
-import ru.hemulen.docsigner.model.Document;
-import ru.hemulen.docsigner.model.DocumentResponse;
+import ru.hemulen.docsigner.model.*;
 import ru.hemulen.docsigner.model.Error;
 import ru.hemulen.docsigner.service.DocumentService;
 
@@ -72,11 +70,12 @@ public class DocumentController {
                     String.format("Не удалось сформировать ClientMessage для файла %s", document.getDocumentPath())));
             return ResponseEntity.badRequest().body(response);
         } catch (IncorrectParameterException e) {
-        DocumentResponse response = new DocumentResponse(new Error("INCORRECT_DATE_FORMAT",
-                String.format("Некорректный формат даты signExp %s. Допустимый формат \"yyyy-MM-dd'T'HH:mm:ss\".", document.getSignExp())));
-        return ResponseEntity.badRequest().body(response);
+            DocumentResponse response = new DocumentResponse(new Error("INCORRECT_DATE_FORMAT",
+                    String.format("Некорректный формат даты signExp %s. Допустимый формат \"yyyy-MM-dd'T'HH:mm:ss\".", document.getSignExp())));
+            return ResponseEntity.badRequest().body(response);
+        }
     }
-    }
+
 
 
 }

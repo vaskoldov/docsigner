@@ -5,6 +5,7 @@ import org.w3c.dom.Element;
 import ru.hemulen.crypto.exceptions.SignatureProcessingException;
 import ru.hemulen.docsigner.exception.*;
 import ru.hemulen.docsigner.model.Document;
+import ru.hemulen.docsigner.model.OssCorpSimRequest;
 import ru.hemulen.signer.Signer;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -153,6 +154,7 @@ public class DocumentService {
         saveClientMessage(document, clientMessage);
         return document.getClientId();
     }
+
     private File signDocument (Document document) throws DocumentFileNotExists, DocumentSignException {
         File documentFile = Paths.get(document.getDocumentPath()).toFile();
         if (!documentFile.exists()) {
