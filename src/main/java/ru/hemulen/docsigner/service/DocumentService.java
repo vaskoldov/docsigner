@@ -40,6 +40,7 @@ public class DocumentService {
     Base64.Encoder encoder;
 
     public DocumentService()  {
+        //TODO:Заменить config.ini на application.properties
         Properties props = new Properties();
         try {
             props.load(new FileInputStream("./config/config.ini"));

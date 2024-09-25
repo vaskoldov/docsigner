@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.hemulen.docsigner.model.OssCorpSimRequest;
 import ru.hemulen.docsigner.service.ESIAService;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 @RestController
 @RequestMapping("/esia")
 public class ESIAController {
@@ -17,7 +19,10 @@ public class ESIAController {
 
     @PostMapping("oss_corp_sim")
     public ResponseEntity sendOssCorpSim(@RequestBody OssCorpSimRequest[] request) {
-        esiaService.processOssCorpSimRequest(request);
-        return ResponseEntity.ok(request);
+        try {
+            return esiaService.processOssCorpSimRequest(request);
+        } catch (ParserConfigurationException e) {
+            return (ResponseEntity) ResponseEntity.internalServerError();
+        }
     }
 }
