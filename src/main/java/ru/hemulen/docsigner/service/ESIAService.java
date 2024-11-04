@@ -2,15 +2,17 @@ package ru.hemulen.docsigner.service;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import ru.hemulen.docsigner.model.ErrorMessage;
-import ru.hemulen.docsigner.model.OssCorpSimRequest;
-import ru.hemulen.docsigner.model.OssCorpSimRequestResponse;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+import ru.hemulen.docsigner.entity.DBConnection;
+import ru.hemulen.docsigner.model.*;
 
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
@@ -21,14 +23,22 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.UUID;
 
 @Service
 public class ESIAService {
+    private static final String ESIA_NAMESPACE = "urn://mincomsvyaz/esia/oss_corp_sim/1.0.1";
+    private static final String ADAPTER_NAMESPACE = "urn://x-artefacts-smev-gov-ru/services/service-adapter/types";
+    private static final String DIRECTIVE_NAMESPACE = "urn://x-artefacts-smev-gov-ru/services/message-exchange/types/directive/1.3";
+
     private Properties props;
+    private DBConnection connection;
     private String adapterOutPath;
     private String esiaRoutingCode;
     private String mnemonic;
@@ -47,6 +57,7 @@ public class ESIAService {
         esiaRoutingCode = props.getProperty("ESIA_ROUTING_CODE");
         mnemonic = props.getProperty("IS_MNEMONIC");
         esiaMnemonic = props.getProperty("ESIA_MNEMONIC");
+        connection = new DBConnection();
 
     }
     public ResponseEntity processOssCorpSimRequest(OssCorpSimRequest[] request) throws ParserConfigurationException {
@@ -58,7 +69,7 @@ public class ESIAService {
         String clientId = UUID.randomUUID().toString();
         // Создаем оболочку ClientMessage
         org.w3c.dom.Document root = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-        Element rootElement = root.createElementNS("urn://x-artefacts-smev-gov-ru/services/service-adapter/types", "tns:ClientMessage");
+        Element rootElement = root.createElementNS(ADAPTER_NAMESPACE, "tns:ClientMessage");
         root.appendChild(rootElement);
         Element itSystem = root.createElement("tns:itSystem");
         itSystem.appendChild(root.createTextNode(mnemonic));
@@ -109,9 +120,9 @@ public class ESIAService {
         content.appendChild(messagePrimaryContent);
 
         // Формируем запрос по виду сведений
-        Element requestElement = root.createElementNS("urn://mincomsvyaz/esia/oss_corp_sim/1.0.1", "ocs:Request");
+        Element requestElement = root.createElementNS(ESIA_NAMESPACE, "ocs:Request");
         messagePrimaryContent.appendChild(requestElement);
-        Element registry = root.createElementNS("urn://x-artefacts-smev-gov-ru/services/message-exchange/types/directive/1.3", "dir:Registry");
+        Element registry = root.createElementNS(DIRECTIVE_NAMESPACE, "dir:Registry");
         requestElement.appendChild(registry);
         // Последовательно обрабатываем каждый элемент массива в параметре метода и добавляем его в Registry
         for (int i = 0; i < request.length; i++) {
@@ -234,5 +245,94 @@ public class ESIAService {
             }
         }
         return true;
+    }
+
+    public ResponseEntity<OssCorpSimResponse> processOssCorpSimResponse(String clientId) {
+        // С clientId идем в базу адаптера и получаем ответы на этот запрос
+        ResultSet resultSet = connection.getAnswers(clientId);
+        // Перебираем ответы и ищем бизнес-ответ ЕСИА по сути запроса
+        try {
+            while (resultSet.next()) {
+                String messageType = resultSet.getString("mode");
+                switch (messageType) {
+                    case "STATUS":
+                        continue;
+                    case "ERROR":
+                    case "REJECT":
+                        // TODO:Обработать ошибку
+                        break;
+                    case "MESSAGE":
+                        // Вот тут парсим ответ и возвращаем в ответ на Get
+                        String responseBody = resultSet.getString("content");
+                        String responseId = resultSet.getString("id");
+                        OssCorpSimResponse response = getClaimOssResponse(responseBody, responseId);
+                        return (ResponseEntity) ResponseEntity.ok(response);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    /**
+     * Метод парсит ответ ЕСИА и создает из него DTO ClaimOssResponse
+     * @param response Строка с XML ответа
+     * @return DTO-объект ClaimOssResponse
+     */
+    private OssCorpSimResponse getClaimOssResponse(String response, String responseId) {
+        OssCorpSimResponse ossCorpSimResponse = new OssCorpSimResponse();
+        ossCorpSimResponse.setResponseClientId(responseId);
+        ArrayList<ClaimOssResponse> claimOssResponseList = new ArrayList<>();
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
+            DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
+            Document document = documentBuilder.parse(response);
+            Element root = document.getDocumentElement();
+            // Получаем список элементов RegistryRecord, обрабатываем и заполняем массив claimOssResponseList
+            NodeList registryRecordList = root.getElementsByTagNameNS(DIRECTIVE_NAMESPACE, "RegistryRecord");
+            for (int i = 0; i < registryRecordList.getLength(); i++) {
+                Element registryRecord = (Element) registryRecordList.item(i);
+                ClaimOssResponse claimOssResponse = new ClaimOssResponse();
+                claimOssResponse.setRecordID(registryRecord.getElementsByTagNameNS(DIRECTIVE_NAMESPACE, "RecordId").item(0).getTextContent());
+                claimOssResponse.setStatus(registryRecord.getElementsByTagNameNS(ESIA_NAMESPACE, "status").item(0).getTextContent());
+                ArrayList<Resp> respList = new ArrayList<>();
+                // Внутри каждой RegistryRecord ищем все элементы Resp, обрабатываем и заполняем массив respList
+                NodeList respNodeList = registryRecord.getElementsByTagNameNS(ESIA_NAMESPACE, "Resp");
+                for (int j = 0; j < respNodeList.getLength(); j++) {
+                    Element respElement = (Element) respNodeList.item(j);
+                    Resp resp = new Resp();
+                    NodeList ossSimConfirmNodeList = respElement.getElementsByTagNameNS(ESIA_NAMESPACE, "OssSimConfirm");
+                    if (ossSimConfirmNodeList.getLength() > 0) {
+                        resp.setOssSimConfirm(ossSimConfirmNodeList.item(0).getTextContent());
+                    }
+                    resp.setOssNam(respElement.getElementsByTagNameNS(ESIA_NAMESPACE, "OssNam").item(0).getTextContent());
+                    NodeList innNodeList = respElement.getElementsByTagNameNS(ESIA_NAMESPACE, "Inn");
+                    if (innNodeList.getLength() > 0) {
+                        resp.setInn(innNodeList.item(0).getTextContent());
+                    }
+                    NodeList phoneNumber10NodeList = respElement.getElementsByTagNameNS(ESIA_NAMESPACE, "phoneNumber10");
+                    if (phoneNumber10NodeList.getLength() > 0) {
+                        resp.setPhoneNumber10(phoneNumber10NodeList.item(0).getTextContent());
+                    }
+                    NodeList phoneNumber14NodeList = respElement.getElementsByTagNameNS(ESIA_NAMESPACE, "phoneNumber14");
+                    if (phoneNumber14NodeList.getLength() > 0) {
+                        resp.setPhoneNumber14(phoneNumber14NodeList.item(0).getTextContent());
+                    }
+                    NodeList ukiNodeList = respElement.getElementsByTagNameNS(ESIA_NAMESPACE, "uki");
+                    if (ukiNodeList.getLength() > 0) {
+                        resp.setUki(ukiNodeList.item(0).getTextContent());
+                    }
+                    respList.add(resp);
+                }
+                claimOssResponseList.add(claimOssResponse);
+            }
+            ossCorpSimResponse.setClaimOssResponse(claimOssResponseList);
+            return ossCorpSimResponse;
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            //TODO: Вернуть код 500 и описание ошибки
+            throw new RuntimeException(e);
+        }
     }
 }
