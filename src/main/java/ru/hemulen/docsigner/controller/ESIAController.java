@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.hemulen.docsigner.model.OssCorpSimRequest;
+import ru.hemulen.docsigner.model.OssCorpSimRequestResponse;
 import ru.hemulen.docsigner.model.OssCorpSimResponse;
 import ru.hemulen.docsigner.service.ESIAService;
 
@@ -16,7 +17,7 @@ public class ESIAController {
     private ESIAService esiaService;
 
     @PostMapping("oss_corp_sim")
-    public ResponseEntity sendOssCorpSim(@RequestBody OssCorpSimRequest[] request) {
+    public ResponseEntity<OssCorpSimRequestResponse> sendOssCorpSim(@RequestBody OssCorpSimRequest[] request) {
         try {
             return esiaService.processOssCorpSimRequest(request);
         } catch (ParserConfigurationException e) {
@@ -25,7 +26,7 @@ public class ESIAController {
     }
 
     @GetMapping("oss_corp_sim/{clientId}")
-    public ResponseEntity getOssSimResponse(@RequestParam String clientId) {
+    public ResponseEntity<OssCorpSimResponse> getOssSimResponse(@RequestParam String clientId) {
         try {
             return esiaService.processOssCorpSimResponse(clientId);
         } catch (Exception e) {

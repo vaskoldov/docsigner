@@ -1,8 +1,10 @@
 package ru.hemulen.docsigner.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Element;
 import ru.hemulen.crypto.exceptions.SignatureProcessingException;
+import ru.hemulen.docsigner.config.DocSignerProperties;
 import ru.hemulen.docsigner.exception.*;
 import ru.hemulen.docsigner.model.Document;
 import ru.hemulen.docsigner.model.OssCorpSimRequest;
@@ -30,6 +32,8 @@ import java.util.*;
 
 @Service
 public class DocumentService {
+    @Autowired
+    DocSignerProperties properties;
     Signer signer;
     String containerAlias;
     String containerPassword;
@@ -39,21 +43,14 @@ public class DocumentService {
     Base64.Decoder decoder;
     Base64.Encoder encoder;
 
-    public DocumentService()  {
-        //TODO:Заменить config.ini на application.properties
-        Properties props = new Properties();
-        try {
-            props.load(new FileInputStream("./config/config.ini"));
-        } catch (IOException e) {
-            System.err.println("Не удалось загрузить конфигурационный файл");
-            e.printStackTrace(System.err);
-            System.exit(1);
-        }
-        containerAlias = props.getProperty("CONTAINER_ALIAS");
-        containerPassword = props.getProperty("CONTAINER_PASSWORD");
-        adapterOutPath = props.getProperty("ADAPTER_OUT_PATH");
-        attachmentOutPath = props.getProperty("ATTACHMENT_OUT_PATH");
-        backLinkURL = props.getProperty("BACK_LINK");
+    @Autowired
+    public DocumentService(DocSignerProperties properties)  {
+        this.properties = properties;
+        containerAlias = properties.getContainerAlias();
+        containerPassword = properties.getContainerPassword();
+        adapterOutPath = properties.getAdapterOutPath();
+        attachmentOutPath = properties.getAttachmentOutPath();
+        backLinkURL = properties.getBackLink();
         try {
             signer = new Signer(containerAlias, containerPassword);
 

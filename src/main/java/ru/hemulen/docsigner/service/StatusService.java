@@ -1,33 +1,25 @@
 package ru.hemulen.docsigner.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.hemulen.docsigner.config.DocSignerProperties;
 import ru.hemulen.docsigner.entity.DBConnection;
 import ru.hemulen.docsigner.exception.ResponseParseException;
 import ru.hemulen.docsigner.model.MessageResponse;
 import ru.hemulen.docsigner.model.StatusResponse;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Properties;
 
 @Service
 public class StatusService {
-    private DBConnection connection;
-    private String attachmentsInPath;
+    private final DBConnection connection;
+    private final String attachmentsInPath;
 
-    public StatusService() {
-        Properties props = new Properties();
-        try {
-            props.load(new FileInputStream("./config/config.ini"));
-        } catch (IOException e) {
-            System.err.println("Не удалось загрузить конфигурационный файл");
-            e.printStackTrace(System.err);
-            System.exit(1);
-        }
-        attachmentsInPath = props.getProperty("ATTACHMENT_IN_PATH");
-        this.connection = new DBConnection();
+    @Autowired
+    public StatusService(DocSignerProperties properties) {
+        attachmentsInPath = properties.getAttachmentInPath();
+        this.connection = new DBConnection(properties);
     }
 
     public StatusResponse getStatus(String clientId) throws ResponseParseException {

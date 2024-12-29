@@ -1,5 +1,8 @@
 package ru.hemulen.docsigner.entity;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import ru.hemulen.docsigner.config.DocSignerProperties;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.*;
@@ -7,18 +10,11 @@ import java.util.Properties;
 
 public class DBConnection implements AutoCloseable {
     private Connection connection;
-    public DBConnection() {
-        Properties props = new Properties();
-        try {
-            props.load(new FileInputStream("./config/config.ini"));
-        } catch (IOException e) {
-            System.err.println("Не удалось загрузить конфигурационный файл");
-            e.printStackTrace(System.err);
-            System.exit(1);
-        }
-        String dbURL = props.getProperty("DB_URL");
-        String dbUser = props.getProperty("DB_USER");
-        String dbPass = props.getProperty("DB_PASS");
+    @Autowired
+    public DBConnection(DocSignerProperties properties) {
+        String dbURL = properties.getDbURL();
+        String dbUser = properties.getDbUsename();
+        String dbPass = properties.getDbPassword();
         try {
             Class.forName("org.postgresql.Driver");
             connection = DriverManager.getConnection(dbURL, dbUser, dbPass);

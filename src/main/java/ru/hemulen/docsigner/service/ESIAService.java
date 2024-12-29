@@ -1,11 +1,13 @@
 package ru.hemulen.docsigner.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import ru.hemulen.docsigner.config.DocSignerProperties;
 import ru.hemulen.docsigner.entity.DBConnection;
 import ru.hemulen.docsigner.model.*;
 
@@ -17,7 +19,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -44,20 +45,13 @@ public class ESIAService {
     private String mnemonic;
     private String esiaMnemonic;
 //TODO: Добавить нормальное логирование
-    public ESIAService() {
-        try {
-            props = new Properties();
-            props.load(new FileInputStream("./config/config.ini"));
-        } catch (IOException e) {
-            System.err.println("Не удалось загрузить конфигурационный файл");
-            e.printStackTrace(System.err);
-            System.exit(1);
-        }
-        adapterOutPath = props.getProperty("ADAPTER_OUT_PATH");
-        esiaRoutingCode = props.getProperty("ESIA_ROUTING_CODE");
-        mnemonic = props.getProperty("IS_MNEMONIC");
-        esiaMnemonic = props.getProperty("ESIA_MNEMONIC");
-        connection = new DBConnection();
+    @Autowired
+    public ESIAService(DocSignerProperties properties) {
+        adapterOutPath = properties.getAdapterOutPath();
+        esiaRoutingCode = properties.getEsiaRoutingCode();
+        mnemonic = properties.getIsMnemonic();
+        esiaMnemonic = properties.getEsiaMnemonic();
+        connection = new DBConnection(properties);
 
     }
     public ResponseEntity processOssCorpSimRequest(OssCorpSimRequest[] request) throws ParserConfigurationException {
